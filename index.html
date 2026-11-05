@@ -235,30 +235,34 @@ body{background:var(--ink);color:var(--paper);font-family:'PingFang SC','Microso
     <div><div class="ed-kicker">CONTENT EDITOR</div><h2>编辑汇报内容</h2></div>
     <button class="ed-close" id="edClose" aria-label="关闭编辑器">✕</button>
   </div>
-  <div class="ed-status" id="edStatus">正在连接云端…</div>
+  <div class="ed-status" id="edStatus">正在准备仓库…</div>
   <div class="ed-scroll" id="edFields"></div>
   <div class="ed-foot">
-    <button class="btn primary" id="btnSave">保存到云端</button>
+    <button class="btn primary" id="btnSave">保存到 GitHub</button>
     <button class="btn" id="btnReload">重新载入</button>
     <button class="btn" id="btnExport">导出备份</button>
   </div>
 </aside>
 
-<!-- 云服务 SDK（官方 IIFE 全局版，随站点本地托管，不依赖外部 CDN） -->
-<script src="cloud-sdk.js"></script>
-
 <script>
 /* ============================================================
-   云端配置：由 WorkBuddy 云环境 publicConfig 注入，勿手工修改
+   GitHub 后端配置：内容存于仓库 deck-data.json，任何人可在线编辑
+   保存通过 GitHub Contents API（需要下方令牌）。
+   安全提示：此令牌暴露在公开页面源码中，请使用「仅限本仓库、仅 Contents
+   读写」的细粒度个人访问令牌（Fine-grained PAT），并定期轮换。
    ============================================================ */
-const publicConfig = {
-  endpoint: 'https://multicultural-deck.app.workbuddy.host',
-  oauthRelayBaseUrl: 'https://www.workbuddy.cn/v2/as/genie-baas/oauth',
-  publishableKey: 'wbpk_jCMT3MYt5kBzdXoo2YGf7a_SkWTlaxTrDfVyjA9uZiAjmVOesJitu7h'
+const GH = {
+  api: 'https://api.github.com',
+  repo: 'denghaotiandenghaotian-design/web',   // owner/repo
+  branch: 'main',
+  path: 'deck-data.json',
+  // 写入令牌（保存内容到仓库时需要）。放一个「仅限本仓库、Contents: Read&Write」
+  // 的细粒度个人访问令牌；不要放 broad 的 repo 全权限令牌。
+  // 留空时：内容仍可正常读取与本地编辑，但「保存」会提示需要令牌。
+  token: ''
 }
-const DOC_KEY = 'main'
 
-/* ---------- 内置框架稿（云端无内容时的初始数据） ---------- */
+/* ---------- 内置框架稿（仓库无内容时的初始数据） ---------- */
 const DEFAULT_SLIDES = [
   {
     layout:'cover', tag:'框架稿 · 待补充内容', kicker:'SOCIAL WORK · MULTICULTURALISM', num:'',
@@ -343,8 +347,7 @@ let DATA = JSON.parse(JSON.stringify(DEFAULT_SLIDES))
 let cur = 0
 let stamp = null
 let slideEls = []
-let cloud = null
-let cloudOK = false
+let ghSha = null   // 当前 deck-data.json 在仓库中的 blob sha（乐观锁，防并发覆盖）
 let pendingDelete = false
 const $ = id => document.getElementById(id)
 const track = $('track'), dotsBox = $('dots'), bar = $('bar')
@@ -553,7 +556,7 @@ edFields.addEventListener('click', e => {
       kicker:'NEW CHAPTER', num:pad(DATA.length), title:'新页面标题', lead:'在此填写导语', notes:'',
       items:[{tag:'要点',text:'在此填写内容',todo:''}]
     })
-    renderAll(); show(cur + 1); setStatus('已新增一页，记得「保存到云端」', 'busy'); return
+    renderAll(); show(cur + 1); setStatus('已新增一页，记得「保存」', 'busy'); return
   }
   if (act === 'up' && cur > 0){
     const t = DATA[cur]; DATA[cur] = DATA[cur-1]; DATA[cur-1] = t
@@ -567,7 +570,7 @@ edFields.addEventListener('click', e => {
     if (!pendingDelete){ pendingDelete = true; buildForm(); setTimeout(()=>{ pendingDelete = false; if (editor.classList.contains('open')) buildForm() }, 3500); return }
     if (DATA.length <= 1){ setStatus('至少保留一页', 'err'); pendingDelete = false; buildForm(); return }
     DATA.splice(cur, 1); cur = Math.min(cur, DATA.length - 1)
-    pendingDelete = false; renderAll(); setStatus('已删除一页，记得「保存到云端」', 'busy'); return
+    pendingDelete = false; renderAll(); setStatus('已删除一页，记得「保存」', 'busy'); return
   }
   if (act === 'addrow'){
     const mode = modeOf(DATA[cur])
@@ -582,78 +585,96 @@ edFields.addEventListener('click', e => {
   }
 })
 
-/* ---------- 云端读写 ---------- */
+/* ---------- GitHub 仓库读写（任何人可在线编辑，保存即提交到仓库） ---------- */
+function b64enc(str){ return btoa(unescape(encodeURIComponent(str))) }
+function b64dec(b64){ return decodeURIComponent(escape(atob(String(b64).replace(/\s/g,'')))) }
 function friendly(err){
   if (!err) return '未知错误'
   const m = String(err.message || err)
-  if (/42P01/.test(m)) return '数据表尚未创建'
-  if (/42501/.test(m)) return '没有写入权限'
-  if (/Failed to fetch|NetworkError|network/i.test(m)) return '网络无法连接云端'
-  return m.length > 120 ? m.slice(0,120) + '…' : m
+  if (/Failed to fetch|NetworkError|network/i.test(m)) return '网络无法连接 GitHub'
+  if (/401|403/.test(m)) return '令牌无权写入（请检查 Fine-grained PAT 的 Contents 权限）'
+  if (/409/.test(m)) return '版本冲突，已自动重新载入'
+  return m.length > 140 ? m.slice(0,140) + '…' : m
 }
-function initCloud(){
-  try {
-    if (!window.WorkBuddyCloud || !window.WorkBuddyCloud.createWorkBuddyCloud) throw new Error('云服务 SDK 未加载')
-    cloud = WorkBuddyCloud.createWorkBuddyCloud({
-      endpoint: publicConfig.endpoint,
-      oauthRelayBaseUrl: publicConfig.oauthRelayBaseUrl,
-      publishableKey: publicConfig.publishableKey
-    })
-    cloudOK = true
-  } catch(err){
-    cloudOK = false
-    setStatus('云端未连接：' + friendly(err) + '。可继续浏览，但改动无法跨设备保存。', 'err')
-  }
-}
+const LS_KEY = 'mdeck_draft_v1'
+function saveLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify({ slides: DATA, updated_at: new Date().toISOString() })) }catch(e){} }
+function loadLocal(){ try{ const r = localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : null }catch(e){ return null } }
+
+function initStore(){ /* 令牌内联，无需额外初始化 */ }
+
 async function loadDoc(){
-  if (!cloudOK){ setStatus('云端未连接。当前显示内置框架稿，编辑不会跨设备保存。', 'err'); return }
-  setStatus('正在从云端读取内容…', 'busy')
+  setStatus('正在从 GitHub 仓库读取内容…', 'busy')
   try {
-    const { data, error } = await cloud.database.from('deck_docs')
-      .select('content, updated_at').eq('doc_key', DOC_KEY).maybeSingle()
-    if (error) throw error
-    if (data && data.content && Array.isArray(data.content.slides) && data.content.slides.length){
-      DATA = data.content.slides
-      stamp = data.updated_at
+    const res = await fetch(`${GH.api}/repos/${GH.repo}/contents/${GH.path}?ref=${GH.branch}`, {
+      headers: { 'Accept':'application/vnd.github+json', 'Authorization':'Bearer ' + GH.token }
+    })
+    if (res.status === 404){
+      const local = loadLocal()
+      if (local && Array.isArray(local.slides) && local.slides.length){
+        DATA = local.slides; renderAll()
+        setStatus('仓库暂无保存内容，已载入本机草稿 · 共 ' + DATA.length + ' 页', 'ok')
+      } else {
+        setStatus('仓库还没有保存过内容 · 显示内置框架稿，编辑后点「保存」即可写入仓库', 'ok')
+      }
+      return
+    }
+    if (!res.ok) throw new Error('HTTP ' + res.status)
+    const json = await res.json()
+    const content = JSON.parse(b64dec(json.content))
+    if (content && Array.isArray(content.slides) && content.slides.length){
+      DATA = content.slides
+      ghSha = json.sha
+      stamp = content.updated_at || null
       cur = Math.min(cur, DATA.length - 1)
       renderAll()
-      setStatus('已从云端载入 · 共 ' + DATA.length + ' 页 · 更新于 ' + new Date(stamp).toLocaleString('zh-CN'), 'ok')
+      setStatus('已从仓库载入 · 共 ' + DATA.length + ' 页' + (stamp ? ' · 更新于 ' + new Date(stamp).toLocaleString('zh-CN') : ''), 'ok')
     } else {
-      setStatus('云端还没有内容 · 正在显示内置框架稿，编辑后点「保存到云端」即可创建', 'ok')
+      setStatus('仓库内容为空，显示内置框架稿。', 'ok')
     }
   } catch(err){
-    setStatus('读取失败：' + friendly(err) + '。当前显示内置框架稿。', 'err')
+    const local = loadLocal()
+    if (local && Array.isArray(local.slides) && local.slides.length){
+      DATA = local.slides; renderAll()
+      setStatus('仓库读取失败，已载入本机草稿 · 共 ' + DATA.length + ' 页', 'err')
+    } else {
+      setStatus('读取失败：' + friendly(err) + '。显示内置框架稿，可稍后重试。', 'err')
+    }
   }
 }
+
 async function saveDoc(){
-  if (!cloudOK){ setStatus('云端未连接，无法保存。请在正式分享链接上编辑。', 'err'); return }
   const btn = $('btnSave'); btn.disabled = true
-  setStatus('正在保存到云端…', 'busy')
+  if (!GH.token){
+    setStatus('尚未配置写入令牌：编辑仅保存在本机（localStorage）。要让大家在线同步，请在源码 GH.token 填入「仅限本仓库、Contents: Read&Write」的细粒度令牌，或改用 JSONBin 等外部存储。', 'err')
+    btn.disabled = false; return
+  }
+  setStatus('正在保存到 GitHub 仓库…', 'busy')
+  const payload = { slides: DATA, updated_at: new Date().toISOString(), v: 1 }
+  const body = {
+    message: 'Update deck content via web editor',
+    content: b64enc(JSON.stringify(payload, null, 2)),
+    branch: GH.branch
+  }
+  if (ghSha) body.sha = ghSha   // 已存在则更新；乐观锁防并发覆盖
   try {
-    // 简单的防覆盖：若云端已被别的设备更新，先要求重新载入
-    if (stamp){
-      const { data: latest, error: e1 } = await cloud.database.from('deck_docs')
-        .select('updated_at').eq('doc_key', DOC_KEY).maybeSingle()
-      if (e1) throw e1
-      if (latest && latest.updated_at !== stamp){
-        setStatus('内容已被其他设备更新，请先点「重新载入」再保存，避免覆盖别人的修改。', 'err')
-        btn.disabled = false; return
-      }
+    const res = await fetch(`${GH.api}/repos/${GH.repo}/contents/${GH.path}`, {
+      method: 'PUT',
+      headers: { 'Accept':'application/vnd.github+json', 'Content-Type':'application/json', 'Authorization':'Bearer ' + GH.token },
+      body: JSON.stringify(body)
+    })
+    if (res.status === 409){
+      setStatus('内容已被别人更新（版本冲突）。已自动重新载入最新内容，请在此基础上再保存。', 'err')
+      btn.disabled = false; await loadDoc(); return
     }
-    const now = new Date().toISOString()
-    const { data, error } = await cloud.database.from('deck_docs').upsert({
-      doc_key: DOC_KEY,
-      title: '多元文化理论与文化认同',
-      content: { slides: DATA, v: 1 },
-      updated_at: now
-    }, { onConflict: 'doc_key' }).select()
-    if (error) throw error
-    const affected = Array.isArray(data) ? data : []
-    if (!affected.length){ setStatus('保存被拒绝（权限或版本冲突），请重新载入后重试。', 'err'); btn.disabled = false; return }
-    stamp = affected[0].updated_at || now
-    setStatus('已保存到云端 · ' + DATA.length + ' 页 · ' + new Date(stamp).toLocaleString('zh-CN') + '。其他设备打开链接即可看到。', 'ok')
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + (await res.text()).slice(0,140))
+    const json = await res.json()
+    ghSha = json.content.sha
+    stamp = payload.updated_at
+    saveLocal()
+    setStatus('已保存到 GitHub · 共 ' + DATA.length + ' 页 · 其他设备打开链接即可看到更新。', 'ok')
   } catch(err){
-    setStatus('保存失败：' + friendly(err) + '。改动仍在本次页面，可重试。', 'err')
+    saveLocal()
+    setStatus('保存到仓库失败：' + friendly(err) + '。已暂存到本机草稿，可重试或导出备份。', 'err')
   }
   btn.disabled = false
 }
@@ -690,7 +711,7 @@ addEventListener('keydown', e => {
 
 /* ---------- 启动 ---------- */
 renderAll()
-initCloud()
+initStore()
 loadDoc()
 if (new URLSearchParams(location.search).get('edit') === '1') openEditor(true)
 </script>
