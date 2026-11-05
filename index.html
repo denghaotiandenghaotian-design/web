@@ -645,7 +645,8 @@ async function loadDoc(){
 async function saveDoc(){
   const btn = $('btnSave'); btn.disabled = true
   if (!GH.token){
-    setStatus('尚未配置写入令牌：编辑仅保存在本机（localStorage）。要让大家在线同步，请在源码 GH.token 填入「仅限本仓库、Contents: Read&Write」的细粒度令牌，或改用 JSONBin 等外部存储。', 'err')
+    saveLocal()
+    setStatus('已保存到本机（localStorage），仅当前设备可见。如需跨设备/跨人同步，请在源码 GH.token 填入「仅限本仓库、Contents: Read&Write」的细粒度令牌，或改用 JSONBin。', 'busy')
     btn.disabled = false; return
   }
   setStatus('正在保存到 GitHub 仓库…', 'busy')
