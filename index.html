@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>社会工作中的多元文化理论与文化认同 · 在线可编辑</title>
+<link rel="icon" href="data:," />
+
+<style>
+:root{
+  --ink:#070a14; --paper:#f6f3ec; --paper-2:rgba(244,241,234,.72); --paper-3:rgba(244,241,234,.5);
+  --gold:#e2a252; --gold-2:#f0d9a8; --line:rgba(255,255,255,.08);
+  --glass:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%}
+body{background:var(--ink);color:var(--paper);font-family:'PingFang SC','Microsoft YaHei','Hiragino Sans GB',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow:hidden}
+::selection{background:rgba(226,162,82,.3);color:#fff}
+
+#bg-root{position:fixed;inset:0;z-index:0}
+#bg-root canvas{display:block}
+
+.veil{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(100deg,rgba(7,10,20,.96) 0%,rgba(7,10,20,.86) 30%,rgba(7,10,20,.38) 56%,rgba(7,10,20,.10) 78%,rgba(7,10,20,.30) 100%)}
+
+/* TV 换台：横向滑动轨道 */
+.stage{position:fixed;inset:0;z-index:2;overflow:hidden;pointer-events:none;will-change:transform}
+.track{position:absolute;inset:0;display:flex;flex-wrap:nowrap;will-change:transform;
+  transition:transform .72s cubic-bezier(.76,0,.24,1)}
+.slide{flex:0 0 100%;height:100%;display:flex;align-items:center;padding:0 clamp(40px,7vw,120px);position:relative}
+.slide .content{position:relative;z-index:1;width:min(54vw,760px);
+  opacity:0;transform:translateY(18px);transition:opacity .55s ease,transform .55s cubic-bezier(.2,.7,.2,1)}
+.slide.active .content{opacity:1;transform:none}
+.slide.no-anim .content{transition:none;opacity:1;transform:none}
+
+/* TV 换台特效：扫描线扫过 + 信号色散抖动 */
+.tv-fx{position:fixed;inset:0;z-index:4;pointer-events:none;overflow:hidden;opacity:0}
+.tv-fx .scanline{position:absolute;left:0;right:0;top:-160px;height:160px;opacity:.9;
+  background:linear-gradient(180deg,transparent,rgba(226,162,82,.12) 42%,rgba(240,217,168,.55) 50%,rgba(226,162,82,.12) 58%,transparent);
+  filter:blur(1.5px)}
+.tv-fx.sweep{animation:fxFade .72s ease forwards}
+.tv-fx.sweep .scanline{animation:scan .72s cubic-bezier(.5,0,.2,1) forwards}
+@keyframes scan{from{top:-160px}to{top:100%}}
+@keyframes fxFade{0%{opacity:1}85%{opacity:1}100%{opacity:0}}
+.stage.glitch{animation:glitch .42s steps(3,jump-none) 1}
+@keyframes glitch{
+  0%{transform:translate3d(0,0,0);filter:none}
+  25%{transform:translate3d(-5px,0,0);filter:blur(.4px) drop-shadow(2px 0 rgba(255,60,90,.45)) drop-shadow(-2px 0 rgba(80,200,255,.45))}
+  50%{transform:translate3d(4px,0,0);filter:blur(.3px) drop-shadow(-2px 0 rgba(255,60,90,.4)) drop-shadow(2px 0 rgba(80,200,255,.4))}
+  75%{transform:translate3d(-2px,0,0);filter:blur(.4px) drop-shadow(2px 0 rgba(255,60,90,.45)) drop-shadow(-2px 0 rgba(80,200,255,.45))}
+  100%{transform:translate3d(0,0,0);filter:none}
+}
+
+.num-watermark{position:absolute;right:-7vw;top:50%;transform:translateY(-50%);
+  font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;font-weight:600;font-size:clamp(150px,20vw,300px);line-height:.8;
+  color:rgba(226,162,82,.06);pointer-events:none;user-select:none;z-index:-1}
+
+.pill{display:inline-block;border:1px solid rgba(226,162,82,.5);color:var(--gold);
+  padding:6px 14px;border-radius:999px;font-size:12.5px;letter-spacing:.12em;font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;
+  margin-bottom:26px;background:rgba(226,162,82,.06)}
+.kicker{display:flex;align-items:center;gap:14px;font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;text-transform:uppercase;
+  letter-spacing:.34em;font-size:12.5px;font-weight:600;color:var(--gold);margin-bottom:22px}
+.kicker .rule{width:36px;height:1px;background:linear-gradient(90deg,var(--gold),transparent)}
+.title{font-family:'Songti SC','STSong','Source Han Serif SC','SimSun',serif;font-weight:600;color:var(--paper);
+  font-size:clamp(32px,4.4vw,62px);line-height:1.12;letter-spacing:.01em;margin-bottom:24px;
+  text-shadow:0 2px 30px rgba(0,0,0,.45)}
+.cover-title{font-size:clamp(32px,4.4vw,62px)}
+.t-line{display:block}
+.lead{font-family:'PingFang SC','Microsoft YaHei',system-ui,sans-serif;font-weight:300;font-size:clamp(15px,1.4vw,19px);
+  line-height:1.9;color:var(--paper-2);max-width:44ch;margin-top:6px}
+
+.items{margin-top:34px;display:flex;flex-direction:column}
+.item{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:baseline;padding:17px 0;border-bottom:1px solid var(--line)}
+.item:first-child{border-top:1px solid var(--line)}
+.item .tag{font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;font-size:13px;letter-spacing:.1em;color:var(--gold);min-width:70px;font-weight:600;text-transform:uppercase;padding-top:2px}
+.item .text{font-family:'PingFang SC','Microsoft YaHei',system-ui,sans-serif;font-size:clamp(15px,1.32vw,18px);line-height:1.7;color:var(--paper-2)}
+
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:34px}
+.card{position:relative;padding:24px 22px;border-radius:16px;background:var(--glass);
+  border:1px solid rgba(226,162,82,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 14px 50px rgba(0,0,0,.4);transition:transform .45s cubic-bezier(.2,.7,.2,1),border-color .45s}
+.card:hover{transform:translateY(-5px);border-color:rgba(226,162,82,.42)}
+.card .t{font-family:'Songti SC','STSong','Source Han Serif SC','SimSun',serif;font-weight:600;font-size:17px;color:var(--gold-2);margin-bottom:12px;line-height:1.4}
+.card .d{font-family:'PingFang SC','Microsoft YaHei',system-ui,sans-serif;font-size:14px;line-height:1.7;color:var(--paper-2)}
+
+.todo{display:inline-block;margin-left:8px;color:var(--gold);font-size:12px;letter-spacing:.02em;
+  border:1px dashed rgba(226,162,82,.45);background:rgba(226,162,82,.08);padding:2px 8px;border-radius:6px;white-space:nowrap;vertical-align:middle}
+
+.brand{position:fixed;top:clamp(26px,4vh,44px);left:clamp(40px,7vw,120px);z-index:3;pointer-events:none;
+  display:flex;align-items:center;gap:10px;font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;font-size:12.5px;letter-spacing:.16em;
+  color:var(--paper-3);text-transform:uppercase}
+.brand-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px rgba(226,162,82,.8)}
+.counter{position:fixed;top:clamp(26px,4vh,44px);right:clamp(28px,5vw,60px);z-index:3;pointer-events:none;
+  font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;font-size:13px;letter-spacing:.2em;color:var(--paper-3)}
+.counter .sep{margin:0 6px;color:rgba(226,162,82,.6)}
+
+.nav{position:fixed;bottom:clamp(28px,4vh,46px);right:clamp(28px,5vw,60px);z-index:3;display:flex;gap:12px;pointer-events:auto}
+.nav button{width:46px;height:46px;border-radius:50%;border:1px solid rgba(226,162,82,.35);
+  background:rgba(255,255,255,.04);color:var(--gold);font-size:22px;line-height:1;cursor:pointer;
+  backdrop-filter:blur(6px);transition:.25s;display:flex;align-items:center;justify-content:center}
+.nav button:hover{background:rgba(226,162,82,.14);border-color:rgba(226,162,82,.6)}
+
+.dots{position:fixed;bottom:clamp(34px,4.4vh,52px);left:clamp(40px,7vw,120px);z-index:3;display:flex;gap:10px;pointer-events:auto;flex-wrap:wrap;max-width:60vw}
+.dot{width:8px;height:8px;border-radius:50%;border:none;padding:0;cursor:pointer;background:rgba(255,255,255,.22);transition:.25s}
+.dot.active{background:var(--gold);box-shadow:0 0 12px rgba(226,162,82,.7);width:22px;border-radius:4px}
+
+.progress{position:fixed;left:0;bottom:0;width:100%;height:2px;background:rgba(255,255,255,.08);z-index:3}
+.progress .bar{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-2));transition:width .5s cubic-bezier(.2,.7,.2,1)}
+
+.hint{position:fixed;bottom:clamp(30px,4.2vh,48px);left:50%;transform:translateX(-50%);z-index:3;pointer-events:none;
+  font-size:11.5px;letter-spacing:.08em;color:var(--paper-3);opacity:.7;white-space:nowrap}
+
+.notes-panel{position:fixed;z-index:5;right:clamp(20px,3vw,40px);top:clamp(80px,12vh,120px);width:min(360px,40vw);
+  background:rgba(10,14,26,.92);border:1px solid rgba(226,162,82,.35);border-radius:14px;padding:18px 20px;
+  backdrop-filter:blur(12px);box-shadow:0 18px 60px rgba(0,0,0,.5);pointer-events:auto;
+  font-family:'PingFang SC','Microsoft YaHei',system-ui,sans-serif;font-size:13.5px;line-height:1.8;color:var(--paper-2);display:none}
+.notes-head{display:flex;justify-content:space-between;align-items:center;color:var(--gold);
+  font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px}
+.notes-head button{background:none;border:none;color:var(--paper-3);cursor:pointer;font-size:14px}
+.notes-head button:hover{color:var(--gold)}
+
+/* ---------- 在线编辑器 ---------- */
+.edit-btn{position:fixed;z-index:6;top:clamp(22px,3.4vh,38px);right:clamp(120px,13vw,190px);
+  display:flex;align-items:center;gap:9px;padding:9px 15px;border-radius:999px;cursor:pointer;
+  border:1px solid rgba(226,162,82,.4);background:rgba(12,17,30,.6);color:var(--gold-2);
+  font-family:'Inter','PingFang SC','Microsoft YaHei',system-ui,sans-serif;font-size:12px;letter-spacing:.08em;
+  backdrop-filter:blur(10px);transition:.28s}
+.edit-btn:hover{border-color:rgba(226,162,82,.85);background:rgba(226,162,82,.12);transform:translateY(-1px)}
+.cloud-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.25);box-shadow:none;transition:.3s}
+.cloud-dot.ok{background:#6fd3a6;box-shadow:0 0 10px rgba(111,211,166,.7)}
+.cloud-dot.err{background:#e2705f;box-shadow:0 0 10px rgba(226,112,95,.7)}
+.cloud-dot.busy{background:var(--gold);box-shadow:0 0 10px rgba(226,162,82,.7)}
+
+.editor{position:fixed;z-index:7;top:0;right:0;height:100%;width:min(452px,94vw);
+  display:flex;flex-direction:column;transform:translateX(103%);transition:transform .55s cubic-bezier(.2,.7,.2,1);
+  background:rgba(9,13,24,.95);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-left:1px solid rgba(226,162,82,.24);box-shadow:-30px 0 90px rgba(0,0,0,.6)}
+.editor.open{transform:none}
+.ed-head{padding:26px 26px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.ed-kicker{font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;font-size:10.5px;letter-spacing:.3em;color:var(--gold);text-transform:uppercase}
+.ed-head h2{font-family:'Songti SC','STSong','Source Han Serif SC','SimSun',serif;font-weight:600;font-size:21px;color:var(--paper);margin-top:9px;letter-spacing:.02em}
+.ed-close{background:none;border:1px solid var(--line);color:var(--paper-3);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;flex:0 0 auto;transition:.25s}
+.ed-close:hover{border-color:rgba(226,162,82,.6);color:var(--gold)}
+.ed-status{padding:10px 26px;font-size:11.5px;line-height:1.6;letter-spacing:.02em;color:var(--paper-3);border-bottom:1px solid var(--line);min-height:38px}
+.ed-status.ok{color:#8fdcb8}.ed-status.err{color:#f0a08f}.ed-status.busy{color:var(--gold-2)}
+
+.ed-scroll{flex:1;overflow-y:auto;padding:22px 26px 28px;scrollbar-width:thin;scrollbar-color:rgba(226,162,82,.35) transparent}
+.ed-scroll::-webkit-scrollbar{width:6px}.ed-scroll::-webkit-scrollbar-thumb{background:rgba(226,162,82,.3);border-radius:3px}
+.ed-sect{margin-bottom:26px}
+.ed-sect-title{font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;font-size:10.5px;letter-spacing:.24em;color:var(--gold);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.ed-sect-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(226,162,82,.35),transparent)}
+.fld{margin-bottom:13px}
+.fld label{display:block;font-size:11px;letter-spacing:.08em;color:var(--paper-3);margin-bottom:6px}
+.fld input,.fld textarea,.fld select{width:100%;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.11);
+  border-radius:8px;padding:9px 11px;color:var(--paper);font-family:'PingFang SC','Microsoft YaHei',system-ui,sans-serif;font-size:13px;line-height:1.6;
+  outline:none;transition:border-color .25s,background .25s;resize:vertical}
+.fld textarea{min-height:62px}
+.fld input:focus,.fld textarea:focus,.fld select:focus{border-color:rgba(226,162,82,.7);background:rgba(226,162,82,.05)}
+.fld select option{background:#121828;color:var(--paper)}
+.fld-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.ed-pagenav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ed-pagenav .pg{font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;font-size:12px;color:var(--gold-2);letter-spacing:.14em;min-width:64px;text-align:center}
+.mini{padding:7px 11px;border-radius:7px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.035);
+  color:var(--paper-2);font-family:'PingFang SC','Microsoft YaHei',system-ui,sans-serif;font-size:11.5px;cursor:pointer;transition:.22s;white-space:nowrap}
+.mini:hover{border-color:rgba(226,162,82,.55);color:var(--gold-2);background:rgba(226,162,82,.07)}
+.mini.danger:hover{border-color:rgba(226,112,95,.7);color:#f0a08f;background:rgba(226,112,95,.08)}
+.mini.confirm{border-color:rgba(226,112,95,.8);color:#f0a08f;background:rgba(226,112,95,.12)}
+
+.row-edit{border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:11px 12px 10px;margin-bottom:10px;background:rgba(255,255,255,.02)}
+.row-edit .rh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.row-edit .rh span{font-family:system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;font-size:10px;letter-spacing:.18em;color:rgba(226,162,82,.75)}
+.row-edit .rh button{background:none;border:none;color:var(--paper-3);cursor:pointer;font-size:12px;padding:2px 4px}
+.row-edit .rh button:hover{color:#f0a08f}
+.row-edit input,.row-edit textarea{width:100%;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.1);
+  border-radius:6px;padding:7px 9px;color:var(--paper);font-family:'PingFang SC','Microsoft YaHei',system-ui,sans-serif;font-size:12.5px;line-height:1.55;
+  outline:none;margin-bottom:6px;resize:vertical}
+.row-edit input:focus,.row-edit textarea:focus{border-color:rgba(226,162,82,.6)}
+.row-edit input:last-child,.row-edit textarea:last-child{margin-bottom:0}
+.row-2{display:grid;grid-template-columns:96px 1fr;gap:6px}
+.row-2 input{margin-bottom:6px}
+
+.ed-foot{padding:16px 26px 20px;border-top:1px solid var(--line);display:flex;gap:9px;flex-wrap:wrap;background:rgba(7,10,20,.5)}
+.btn{flex:1;min-width:96px;padding:11px 12px;border-radius:9px;cursor:pointer;font-family:'PingFang SC','Microsoft YaHei',system-ui,sans-serif;
+  font-size:12.5px;letter-spacing:.04em;transition:.25s;border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.035);color:var(--paper-2)}
+.btn:hover{border-color:rgba(226,162,82,.6);color:var(--gold-2)}
+.btn.primary{flex:1 1 100%;background:linear-gradient(100deg,rgba(226,162,82,.9),rgba(240,217,168,.85));
+  color:#14100a;border:none;font-weight:600;letter-spacing:.1em}
+.btn.primary:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+@media (max-width:880px){
+  .slide .content{width:90vw}
+  .cards{grid-template-columns:1fr}
+  .num-watermark{display:none}
+  .veil{background:linear-gradient(180deg,rgba(7,10,20,.85),rgba(7,10,20,.6))}
+  .edit-btn{right:auto;left:clamp(20px,5vw,40px);top:auto;bottom:clamp(74px,10vh,100px)}
+  .hint{display:none}
+}
+</style>
+
+</head>
+<body>
+<div id="bg-root"></div>
+<div class="veil"></div>
+
+<div class="stage" id="stage">
+  <div class="track" id="track"></div>
+</div>
+
+<div class="brand"><span class="brand-dot"></span>多元文化 · 文化认同</div>
+<div class="counter" id="counter">CH 01 / 08</div>
+<button class="edit-btn" id="editBtn"><span class="cloud-dot" id="cloudDot"></span>✎ 编辑内容</button>
+
+<div class="nav">
+  <button id="prevBtn" aria-label="上一页">‹</button>
+  <button id="nextBtn" aria-label="下一页">›</button>
+</div>
+<div class="dots" id="dots"></div>
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div class="hint">方向键 / 空格换台 · 移动鼠标扰动海面 · 点击激起涟漪 · 按 N 看备注 · 按 E 编辑</div>
+
+<div class="tv-fx" id="tvfx"><div class="scanline"></div></div>
+
+<div class="notes-panel" id="notes">
+  <div class="notes-head"><span>演讲者备注</span><button id="notesClose">✕</button></div>
+  <div id="notesBody"></div>
+</div>
+
+<!-- 在线编辑器 -->
+<aside class="editor" id="editor">
+  <div class="ed-head">
+    <div><div class="ed-kicker">CONTENT EDITOR</div><h2>编辑汇报内容</h2></div>
+    <button class="ed-close" id="edClose" aria-label="关闭编辑器">✕</button>
+  </div>
+  <div class="ed-status" id="edStatus">正在连接云端…</div>
+  <div class="ed-scroll" id="edFields"></div>
+  <div class="ed-foot">
+    <button class="btn primary" id="btnSave">保存到云端</button>
+    <button class="btn" id="btnReload">重新载入</button>
+    <button class="btn" id="btnExport">导出备份</button>
+  </div>
+</aside>
+
+<!-- 云服务 SDK（官方 IIFE 全局版，随站点本地托管，不依赖外部 CDN） -->
+<script src="cloud-sdk.js"></script>
+
+<script>
+/* ============================================================
+   云端配置：由 WorkBuddy 云环境 publicConfig 注入，勿手工修改
+   ============================================================ */
+const publicConfig = {
+  endpoint: 'https://multicultural-deck.app.workbuddy.host',
+  oauthRelayBaseUrl: 'https://www.workbuddy.cn/v2/as/genie-baas/oauth',
+  publishableKey: 'wbpk_jCMT3MYt5kBzdXoo2YGf7a_SkWTlaxTrDfVyjA9uZiAjmVOesJitu7h'
+}
+const DOC_KEY = 'main'
+
+/* ---------- 内置框架稿（云端无内容时的初始数据） ---------- */
+const DEFAULT_SLIDES = [
+  {
+    layout:'cover', tag:'框架稿 · 待补充内容', kicker:'SOCIAL WORK · MULTICULTURALISM', num:'',
+    title:'社会工作中的\n多元文化理论与文化认同',
+    lead:'从理论脉络到实务反思 —— 一份可逐步填充的汇报骨架。移动鼠标扰动海面，点击激起涟漪。',
+    notes:'框架稿·待补充：汇报场合、时长、受众（课堂汇报 / 学术会议 / 实务培训）。金色粒子海浪 = 多元文化交汇，浪峰亮线 = 差异中的共同节律。'
+  },
+  {
+    num:'00', kicker:'AGENDA', title:'本次汇报框架',
+    items:[
+      {tag:'01',text:'为何需要多元文化视角',todo:'【待补充：一句话点题】'},
+      {tag:'02',text:'核心概念辨析',todo:'【待补充：文化 / 文化认同 / 多元文化主义】'},
+      {tag:'03',text:'理论脉络',todo:'【待补充：4 条主线】'},
+      {tag:'04',text:'社会工作实务应用',todo:'【待补充：场景】'},
+      {tag:'05',text:'挑战与反思',todo:'【待补充：张力与困境】'},
+      {tag:'06',text:'小结与延伸',todo:'【待补充：核心观点 + 参考文献】'}
+    ],
+    notes:'导览页：建议每节一句话点题，控制总页数在 8–12 页。'
+  },
+  {
+    num:'01', kicker:'CHAPTER 01', title:'为何需要多元文化视角',
+    lead:'当代社会日益多元，社会工作的"普遍性"服务假设正面临挑战。',
+    items:[
+      {tag:'流动',text:'移民与跨境流动带来的文化交汇',todo:'【待补充】'},
+      {tag:'族群',text:'少数族群与边缘群体的在场',todo:'【待补充】'},
+      {tag:'结构',text:'全球化下的结构性不平等',todo:'【待补充】'},
+      {tag:'伦理',text:'普遍人权 vs 文化差异的张力',todo:'【待补充】'}
+    ],
+    notes:'导言要点：从"普遍性服务假设"转向"差异性在场"。可补充具体社会事实 / 数据（移民规模、族群构成等），须标来源。'
+  },
+  {
+    num:'02', kicker:'CHAPTER 02', title:'核心概念辨析',
+    cards:[
+      {t:'文化 Culture',d:'定义占位',todo:'【待补充：定义 + 与社工关联】'},
+      {t:'文化认同 Cultural Identity',d:'定义占位',todo:'【待补充：定义 + 与社工关联】'},
+      {t:'多元文化主义 Multiculturalism',d:'定义占位',todo:'【待补充：定义 + 与社工关联】'}
+    ],
+    notes:'概念辨析是后续理论的基石。每个概念给"定义 + 与社工的关联"两层即可。'
+  },
+  {
+    num:'03', kicker:'CHAPTER 03', title:'理论脉络',
+    items:[
+      {tag:'多元文化主义',text:'Banks 等：从"同化"到"差异共存"',todo:'【待补充：对社工启示】'},
+      {tag:'交叉性',text:'Crenshaw：种族 / 性别 / 阶级多重压迫叠加',todo:'【待补充：对社工启示】'},
+      {tag:'文化胜任力',text:'Sue 等：知识 / 技能 / 态度三维',todo:'【待补充：局限与演进】'},
+      {tag:'文化谦逊',text:'Cultural Humility：放下"专家"姿态，持续自省',todo:'【待补充：与胜任力区别】'}
+    ],
+    notes:'理论脉络建议每人给"提出者 + 核心主张 + 对社工的启示"三栏。注意引用真实文献，标来源。'
+  },
+  {
+    num:'04', kicker:'CHAPTER 04', title:'社会工作实务应用',
+    items:[
+      {tag:'评估',text:'跨文化沟通与需求评估',todo:'【待补充】'},
+      {tag:'服务',text:'少数族裔 / 移民难民服务',todo:'【待补充：案例占位】'},
+      {tag:'原则',text:'原住民(Indigenous)实务的自主与赋能原则',todo:'【待补充】'},
+      {tag:'倡导',text:'反歧视与结构性倡导',todo:'【待补充】'}
+    ],
+    notes:'实务部分最好配 1–2 个真实 / 匿名化案例（注意伦理脱敏）。每条给"场景 + 介入要点"。'
+  },
+  {
+    num:'05', kicker:'CHAPTER 05', title:'挑战与反思',
+    items:[
+      {tag:'张力',text:'文化相对主义 vs 普遍人权',todo:'【待补充】'},
+      {tag:'陷阱',text:'标签化 / tokenism（象征性包容）',todo:'【待补充】'},
+      {tag:'结构',text:'权力结构与制度性排斥',todo:'【待补充】'},
+      {tag:'自觉',text:'实务者的文化盲点与反身性',todo:'【待补充】'}
+    ],
+    notes:'反思是加分项：展示你对理论限度的清醒，比堆砌概念更有学术分量。'
+  },
+  {
+    num:'06', kicker:'CHAPTER 06', title:'小结与延伸', lead:'一句话核心观点：',
+    items:[
+      {tag:'延伸',text:'推荐阅读 / 课程衔接',todo:'【待补充】'},
+      {tag:'参考',text:'参考文献（GB/T 7714）',todo:'【待补充：作者. 题名[文献类型]. 出处, 年】'}
+    ],
+    notes:'小结用"一句话核心观点"收束；参考文献按 GB/T 7714 著录，标【待补充】待补。'
+  }
+]
+
+/* ---------- 状态 ---------- */
+let DATA = JSON.parse(JSON.stringify(DEFAULT_SLIDES))
+let cur = 0
+let stamp = null
+let slideEls = []
+let cloud = null
+let cloudOK = false
+let pendingDelete = false
+const $ = id => document.getElementById(id)
+const track = $('track'), dotsBox = $('dots'), bar = $('bar')
+const counter = $('counter'), tvfx = $('tvfx'), stageEl = $('stage')
+const editor = $('editor'), edFields = $('edFields'), edStatus = $('edStatus'), cloudDot = $('cloudDot')
+
+function esc(v){
+  return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+}
+function pad(n){ return String(n).padStart(2,'0') }
+function setStatus(msg, kind){
+  edStatus.textContent = msg
+  edStatus.className = 'ed-status' + (kind ? ' ' + kind : '')
+  cloudDot.className = 'cloud-dot' + (kind ? ' ' + kind : '')
+}
+
+/* ---------- 幻灯片渲染（数据驱动） ---------- */
+function renderSlide(s, i, instant){
+  const sec = document.createElement('section')
+  sec.className = 'slide' + (i === cur ? ' active' : '') + (instant ? ' no-anim' : '')
+  sec.dataset.notes = s.notes || ''
+  let h = ''
+  if (s.num) h += '<div class="num-watermark">' + esc(s.num) + '</div>'
+  h += '<div class="content">'
+  if (s.layout === 'cover' && s.tag) h += '<span class="pill">' + esc(s.tag) + '</span>'
+  if (s.kicker) h += '<div class="kicker"><span class="rule"></span>' + esc(s.kicker) + '</div>'
+  const lines = String(s.title || '').split('\n').map(l => '<span class="t-line">' + esc(l) + '</span>').join('')
+  h += '<h1 class="title' + (s.layout === 'cover' ? ' cover-title' : '') + '">' + lines + '</h1>'
+  if (s.lead) h += '<p class="lead">' + esc(s.lead) + '</p>'
+  if (s.cards && s.cards.length){
+    h += '<div class="cards">'
+    s.cards.forEach(c => {
+      h += '<div class="card"><div class="t">' + esc(c.t) + '</div><div class="d">' + esc(c.d) +
+           (c.todo ? '<span class="todo">' + esc(c.todo) + '</span>' : '') + '</div></div>'
+    })
+    h += '</div>'
+  }
+  if (s.items && s.items.length){
+    h += '<div class="items">'
+    s.items.forEach(it => {
+      h += '<div class="item"><span class="tag">' + esc(it.tag) + '</span><span class="text">' + esc(it.text) +
+           (it.todo ? '<span class="todo">' + esc(it.todo) + '</span>' : '') + '</span></div>'
+    })
+    h += '</div>'
+  }
+  h += '</div>'
+  sec.innerHTML = h
+  return sec
+}
+function renderAll(){
+  const t0 = track.style.transition
+  track.style.transition = 'none'
+  track.innerHTML = ''
+  DATA.forEach((s,i) => track.appendChild(renderSlide(s,i,false)))
+  slideEls = Array.prototype.slice.call(track.children)
+  dotsBox.innerHTML = ''
+  DATA.forEach((_,i) => {
+    const d = document.createElement('button')
+    d.className = 'dot' + (i === cur ? ' active' : '')
+    d.setAttribute('aria-label','第 ' + (i+1) + ' 页')
+    d.onclick = () => show(i)
+    dotsBox.appendChild(d)
+  })
+  void track.offsetWidth
+  track.style.transition = t0
+  show(cur, false)
+}
+function refreshCurrent(){
+  const el = renderSlide(DATA[cur], cur, true)
+  if (slideEls[cur]) track.replaceChild(el, slideEls[cur])
+  slideEls[cur] = el
+  $('notesBody').textContent = DATA[cur].notes || ''
+}
+
+/* ---------- 翻页与 TV 换台 ---------- */
+function fireFX(){
+  tvfx.classList.remove('sweep'); stageEl.classList.remove('glitch')
+  void tvfx.offsetWidth
+  tvfx.classList.add('sweep'); stageEl.classList.add('glitch')
+}
+function show(i, fx){
+  cur = Math.max(0, Math.min(i, DATA.length - 1))
+  track.style.transform = 'translateX(' + (-cur * 100) + '%)'
+  slideEls.forEach((s,idx) => s.classList.toggle('active', idx === cur))
+  bar.style.width = ((cur + 1) / DATA.length * 100) + '%'
+  counter.textContent = 'CH ' + pad(cur + 1) + ' / ' + pad(DATA.length)
+  Array.prototype.forEach.call(dotsBox.children, (d,idx) => d.classList.toggle('active', idx === cur))
+  $('notesBody').textContent = DATA[cur].notes || ''
+  if (editor.classList.contains('open')) buildForm()
+  if (fx !== false) fireFX()
+}
+function go(d){ show((cur + d + DATA.length) % DATA.length) }
+function toggleNotes(){
+  const n = $('notes')
+  const open = n.style.display === 'block'
+  n.style.display = open ? 'none' : 'block'
+  if (!open) $('notesBody').textContent = DATA[cur].notes || ''
+}
+
+/* ---------- 编辑器：表单 ---------- */
+function field(label, key, val, type){
+  const id = 'f_' + key
+  if (type === 'textarea'){
+    return '<div class="fld"><label for="' + id + '">' + label + '</label><textarea id="' + id + '" data-f="' + key + '">' + esc(val) + '</textarea></div>'
+  }
+  return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" data-f="' + key + '" value="' + esc(val) + '" /></div>'
+}
+function modeOf(s){
+  if (s.cards && s.cards.length) return 'cards'
+  if (s.items && s.items.length) return 'items'
+  return 'none'
+}
+function buildForm(){
+  const s = DATA[cur] || {}
+  const mode = modeOf(s)
+  const rows = mode === 'items' ? s.items : (mode === 'cards' ? s.cards : [])
+  let h = ''
+
+  h += '<div class="ed-sect"><div class="ed-sect-title">页面导航</div><div class="ed-pagenav">'
+  h += '<button class="mini" data-act="prev">‹ 上一页</button>'
+  h += '<span class="pg">' + pad(cur + 1) + ' / ' + pad(DATA.length) + '</span>'
+  h += '<button class="mini" data-act="next">下一页 ›</button>'
+  h += '<button class="mini" data-act="add">＋ 新增页</button>'
+  h += '<button class="mini" data-act="up">↑ 上移</button>'
+  h += '<button class="mini" data-act="down">↓ 下移</button>'
+  h += '<button class="mini danger' + (pendingDelete ? ' confirm' : '') + '" data-act="del">' +
+       (pendingDelete ? '再点一次确认删除' : '删除本页') + '</button>'
+  h += '</div></div>'
+
+  h += '<div class="ed-sect"><div class="ed-sect-title">本页文字</div>'
+  h += '<div class="fld-row"><div class="fld"><label>版式</label><select data-f="layout">' +
+       '<option value="normal"' + (s.layout !== 'cover' ? ' selected' : '') + '>正文页</option>' +
+       '<option value="cover"' + (s.layout === 'cover' ? ' selected' : '') + '>封面页</option>' +
+       '</select></div>'
+  h += '<div class="fld"><label>章节水印</label><input data-f="num" value="' + esc(s.num || '') + '" placeholder="01" /></div></div>'
+  h += field('角标（仅封面）', 'tag', s.tag || '')
+  h += field('栏目标签 KICKER', 'kicker', s.kicker || '')
+  h += field('标题（换行 = 分行）', 'title', s.title || '', 'textarea')
+  h += field('导语', 'lead', s.lead || '', 'textarea')
+  h += field('演讲者备注（按 N 查看）', 'notes', s.notes || '', 'textarea')
+  h += '</div>'
+
+  h += '<div class="ed-sect"><div class="ed-sect-title">正文条目</div>'
+  h += '<div class="fld"><label>版式类型</label><select data-f="mode">' +
+       '<option value="items"' + (mode === 'items' ? ' selected' : '') + '>条目列表</option>' +
+       '<option value="cards"' + (mode === 'cards' ? ' selected' : '') + '>卡片三栏</option>' +
+       '<option value="none"' + (mode === 'none' ? ' selected' : '') + '>不显示正文</option>' +
+       '</select></div>'
+  rows.forEach((r,i) => {
+    h += '<div class="row-edit"><div class="rh"><span>ENTRY ' + pad(i+1) + '</span>' +
+         '<button data-act="delrow" data-i="' + i + '" title="删除此条">✕</button></div>'
+    if (mode === 'items'){
+      h += '<div class="row-2"><input data-f="items" data-i="' + i + '" data-k="tag" value="' + esc(r.tag) + '" placeholder="标签" />' +
+           '<input data-f="items" data-i="' + i + '" data-k="text" value="' + esc(r.text) + '" placeholder="正文" /></div>'
+      h += '<input data-f="items" data-i="' + i + '" data-k="todo" value="' + esc(r.todo || '') + '" placeholder="待补充提示（留空则不显示）" />'
+    } else {
+      h += '<input data-f="cards" data-i="' + i + '" data-k="t" value="' + esc(r.t) + '" placeholder="卡片标题" />'
+      h += '<textarea data-f="cards" data-i="' + i + '" data-k="d" placeholder="卡片正文">' + esc(r.d) + '</textarea>'
+      h += '<input data-f="cards" data-i="' + i + '" data-k="todo" value="' + esc(r.todo || '') + '" placeholder="待补充提示（留空则不显示）" />'
+    }
+    h += '</div>'
+  })
+  if (mode !== 'none') h += '<button class="mini" data-act="addrow">＋ 添加一条</button>'
+  h += '</div>'
+
+  edFields.innerHTML = h
+}
+function openEditor(open){
+  editor.classList.toggle('open', open)
+  if (open) buildForm()
+}
+function switchMode(s, mode){
+  delete s.items; delete s.cards
+  if (mode === 'items') s.items = [{tag:'要点',text:'在此填写内容',todo:''}]
+  if (mode === 'cards') s.cards = [{t:'卡片标题',d:'在此填写内容',todo:''}]
+}
+
+/* ---------- 编辑器：事件 ---------- */
+edFields.addEventListener('input', e => {
+  const el = e.target, f = el.dataset.f
+  if (!f || !DATA[cur]) return
+  if (f === 'mode' || f === 'layout') return
+  if (f === 'items' || f === 'cards'){
+    DATA[cur][f][+el.dataset.i][el.dataset.k] = el.value
+  } else {
+    DATA[cur][f] = el.value
+  }
+  refreshCurrent()
+})
+edFields.addEventListener('change', e => {
+  const el = e.target, f = el.dataset.f
+  if (!f || !DATA[cur]) return
+  if (f === 'mode'){ switchMode(DATA[cur], el.value); refreshCurrent(); buildForm() }
+  else if (f === 'layout'){ DATA[cur].layout = el.value; refreshCurrent() }
+})
+edFields.addEventListener('click', e => {
+  const btn = e.target.closest('[data-act]')
+  if (!btn || !DATA.length) return
+  const act = btn.dataset.act
+  if (act === 'prev') { show(cur - 1 < 0 ? DATA.length - 1 : cur - 1); return }
+  if (act === 'next') { go(1); return }
+  if (act === 'add'){
+    DATA.splice(cur + 1, 0, {
+      kicker:'NEW CHAPTER', num:pad(DATA.length), title:'新页面标题', lead:'在此填写导语', notes:'',
+      items:[{tag:'要点',text:'在此填写内容',todo:''}]
+    })
+    renderAll(); show(cur + 1); setStatus('已新增一页，记得「保存到云端」', 'busy'); return
+  }
+  if (act === 'up' && cur > 0){
+    const t = DATA[cur]; DATA[cur] = DATA[cur-1]; DATA[cur-1] = t
+    renderAll(); show(cur - 1); return
+  }
+  if (act === 'down' && cur < DATA.length - 1){
+    const t = DATA[cur]; DATA[cur] = DATA[cur+1]; DATA[cur+1] = t
+    renderAll(); show(cur + 1); return
+  }
+  if (act === 'del'){
+    if (!pendingDelete){ pendingDelete = true; buildForm(); setTimeout(()=>{ pendingDelete = false; if (editor.classList.contains('open')) buildForm() }, 3500); return }
+    if (DATA.length <= 1){ setStatus('至少保留一页', 'err'); pendingDelete = false; buildForm(); return }
+    DATA.splice(cur, 1); cur = Math.min(cur, DATA.length - 1)
+    pendingDelete = false; renderAll(); setStatus('已删除一页，记得「保存到云端」', 'busy'); return
+  }
+  if (act === 'addrow'){
+    const mode = modeOf(DATA[cur])
+    if (mode === 'items') DATA[cur].items.push({tag:'要点',text:'在此填写内容',todo:''})
+    else DATA[cur].cards.push({t:'卡片标题',d:'在此填写内容',todo:''})
+    refreshCurrent(); buildForm(); return
+  }
+  if (act === 'delrow'){
+    const mode = modeOf(DATA[cur]), arr = mode === 'items' ? DATA[cur].items : DATA[cur].cards
+    arr.splice(+btn.dataset.i, 1)
+    refreshCurrent(); buildForm(); return
+  }
+})
+
+/* ---------- 云端读写 ---------- */
+function friendly(err){
+  if (!err) return '未知错误'
+  const m = String(err.message || err)
+  if (/42P01/.test(m)) return '数据表尚未创建'
+  if (/42501/.test(m)) return '没有写入权限'
+  if (/Failed to fetch|NetworkError|network/i.test(m)) return '网络无法连接云端'
+  return m.length > 120 ? m.slice(0,120) + '…' : m
+}
+function initCloud(){
+  try {
+    if (!window.WorkBuddyCloud || !window.WorkBuddyCloud.createWorkBuddyCloud) throw new Error('云服务 SDK 未加载')
+    cloud = WorkBuddyCloud.createWorkBuddyCloud({
+      endpoint: publicConfig.endpoint,
+      oauthRelayBaseUrl: publicConfig.oauthRelayBaseUrl,
+      publishableKey: publicConfig.publishableKey
+    })
+    cloudOK = true
+  } catch(err){
+    cloudOK = false
+    setStatus('云端未连接：' + friendly(err) + '。可继续浏览，但改动无法跨设备保存。', 'err')
+  }
+}
+async function loadDoc(){
+  if (!cloudOK){ setStatus('云端未连接。当前显示内置框架稿，编辑不会跨设备保存。', 'err'); return }
+  setStatus('正在从云端读取内容…', 'busy')
+  try {
+    const { data, error } = await cloud.database.from('deck_docs')
+      .select('content, updated_at').eq('doc_key', DOC_KEY).maybeSingle()
+    if (error) throw error
+    if (data && data.content && Array.isArray(data.content.slides) && data.content.slides.length){
+      DATA = data.content.slides
+      stamp = data.updated_at
+      cur = Math.min(cur, DATA.length - 1)
+      renderAll()
+      setStatus('已从云端载入 · 共 ' + DATA.length + ' 页 · 更新于 ' + new Date(stamp).toLocaleString('zh-CN'), 'ok')
+    } else {
+      setStatus('云端还没有内容 · 正在显示内置框架稿，编辑后点「保存到云端」即可创建', 'ok')
+    }
+  } catch(err){
+    setStatus('读取失败：' + friendly(err) + '。当前显示内置框架稿。', 'err')
+  }
+}
+async function saveDoc(){
+  if (!cloudOK){ setStatus('云端未连接，无法保存。请在正式分享链接上编辑。', 'err'); return }
+  const btn = $('btnSave'); btn.disabled = true
+  setStatus('正在保存到云端…', 'busy')
+  try {
+    // 简单的防覆盖：若云端已被别的设备更新，先要求重新载入
+    if (stamp){
+      const { data: latest, error: e1 } = await cloud.database.from('deck_docs')
+        .select('updated_at').eq('doc_key', DOC_KEY).maybeSingle()
+      if (e1) throw e1
+      if (latest && latest.updated_at !== stamp){
+        setStatus('内容已被其他设备更新，请先点「重新载入」再保存，避免覆盖别人的修改。', 'err')
+        btn.disabled = false; return
+      }
+    }
+    const now = new Date().toISOString()
+    const { data, error } = await cloud.database.from('deck_docs').upsert({
+      doc_key: DOC_KEY,
+      title: '多元文化理论与文化认同',
+      content: { slides: DATA, v: 1 },
+      updated_at: now
+    }, { onConflict: 'doc_key' }).select()
+    if (error) throw error
+    const affected = Array.isArray(data) ? data : []
+    if (!affected.length){ setStatus('保存被拒绝（权限或版本冲突），请重新载入后重试。', 'err'); btn.disabled = false; return }
+    stamp = affected[0].updated_at || now
+    setStatus('已保存到云端 · ' + DATA.length + ' 页 · ' + new Date(stamp).toLocaleString('zh-CN') + '。其他设备打开链接即可看到。', 'ok')
+  } catch(err){
+    setStatus('保存失败：' + friendly(err) + '。改动仍在本次页面，可重试。', 'err')
+  }
+  btn.disabled = false
+}
+function exportJSON(){
+  const blob = new Blob([JSON.stringify({ slides: DATA, exportedAt: new Date().toISOString() }, null, 2)], { type:'application/json' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = '多元文化汇报_内容备份.json'
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000)
+  setStatus('已导出内容备份（JSON）。', 'ok')
+}
+
+/* ---------- UI 绑定 ---------- */
+$('prevBtn').onclick = () => go(-1)
+$('nextBtn').onclick = () => go(1)
+$('notesClose').onclick = toggleNotes
+$('editBtn').onclick = () => openEditor(!editor.classList.contains('open'))
+$('edClose').onclick = () => openEditor(false)
+$('btnSave').onclick = saveDoc
+$('btnReload').onclick = loadDoc
+$('btnExport').onclick = exportJSON
+addEventListener('keydown', e => {
+  const typing = e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)
+  if (e.key === 'Escape' && editor.classList.contains('open')){ openEditor(false); return }
+  if (typing) return
+  if (['ArrowRight',' ','Spacebar'].includes(e.key)){ e.preventDefault(); go(1) }
+  else if (e.key === 'ArrowLeft') go(-1)
+  else if (e.key === 'Home') show(0)
+  else if (e.key === 'End') show(DATA.length - 1)
+  else if (e.key.toLowerCase() === 'n') toggleNotes()
+  else if (e.key.toLowerCase() === 'e') openEditor(!editor.classList.contains('open'))
+})
+
+/* ---------- 启动 ---------- */
+renderAll()
+initCloud()
+loadDoc()
+if (new URLSearchParams(location.search).get('edit') === '1') openEditor(true)
+</script>
+
+<!-- ---------- 3D 背景：纯 WebGL2 自包含 Contour Tide 金色粒子海浪（零外部依赖，任何网络可开） ---------- -->
+<script>
+(function(){
+  const root = document.getElementById('bg-root');
+  if(!root) return;
+  try{
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'display:block;width:100%;height:100%';
+    root.appendChild(canvas);
+    const gl = canvas.getContext('webgl2', { antialias:false, alpha:true, premultipliedAlpha:false });
+    if(!gl) throw new Error('WebGL2 不可用');
+
+    const CFG = {
+      water:[0.20,0.255,0.37], crest:[0.886,0.635,0.322], foam:[0.969,0.902,0.769],
+      waveHeight:1.0, choppiness:0.85, wavelength:6.0, wind:0.0, speed:1.0, seed:0.37,
+      swell:1.0, swellRadius:6.0, foamAmt:1.0, glow:0.6, fog:1.0, baseSize:2.4
+    };
+    const S = 28;
+
+    const VERT = `#version 300 es
+precision highp float;
+layout(location=0) in vec2 aPos;
+uniform mat4 uVP;
+uniform float uTime,uWaveH,uChoppy,uWaveLen,uWind,uSpeed,uSeed;
+uniform float uSwell,uSwellR,uFog,uSize,uAlpha;
+uniform vec2 uPointer;
+uniform vec4 uRipples[4];
+out float vFade; out float vFoam;
+float waveAt(vec2 p,float t){
+  vec2 dir=vec2(sin(uWind),cos(uWind));
+  float k=6.2831853/max(uWaveLen,0.001);
+  float ph=dot(p,dir)*k+t*uSpeed+uSeed*6.2831;
+  float s=sin(ph);
+  float sharp=pow(0.5+0.5*s, mix(1.0,7.0,clamp(uChoppy,0.0,1.0)));
+  float h=(sharp-0.5)*2.0*uWaveH;
+  h+=sin(dot(p,vec2(dir.y,-dir.x))*k*0.63 - t*uSpeed*0.66 + uSeed*3.0)*0.28*uWaveH;
+  h+=sin(ph*2.13+1.7)*0.09*uWaveH;
+  float d=length(p-uPointer);
+  h+=uSwell*exp(-d*d/(uSwellR*uSwellR+0.001))*0.55;
+  for(int i=0;i<4;i++){
+    vec4 r=uRipples[i];
+    if(r.w<=0.0) continue;
+    float age=t-r.z;
+    if(age<0.0||age>4.5) continue;
+    float rd=length(p-r.xy);
+    float ring=sin(rd*2.6-age*4.2)*exp(-abs(rd-age*3.0)*0.85)*exp(-age*0.65);
+    h+=ring*r.w*0.4;
+  }
+  return h;
+}
+void main(){
+  vec2 p=aPos;
+  vec2 dir=vec2(sin(uWind),cos(uWind));
+  float k=6.2831853/max(uWaveLen,0.001);
+  float ph=dot(p,dir)*k+uTime*uSpeed+uSeed*6.2831;
+  p-=dir*cos(ph)*uChoppy*0.55;
+  float h=waveAt(p,uTime);
+  vec3 wp=vec3(p.x, h, p.y);
+  float foam=smoothstep(0.18*uWaveH,0.92*uWaveH,h);
+  vFoam=foam;
+  vec4 clip=uVP*vec4(wp,1.0);
+  float dist=clip.w;
+  vFade=(1.0-smoothstep(16.0,54.0,dist*uFog))*smoothstep(0.0,3.0,dist);
+  gl_PointSize=uSize*(0.55+1.05*foam)*(26.0/max(dist,0.6));
+  gl_Position=clip;
+}`;
+
+    const FRAG = `#version 300 es
+precision highp float;
+uniform vec3 uWater,uCrest,uFoamCol;
+uniform float uGlow,uFoam,uAlpha;
+in float vFade; in float vFoam;
+out vec4 frag;
+void main(){
+  float d=length(gl_PointCoord-0.5);
+  float core=smoothstep(0.5,0.04,d);
+  float halo=smoothstep(0.5,0.0,d)*uGlow;
+  float t=clamp(vFoam,0.0,1.0);
+  vec3 col=mix(uWater,uCrest,t);
+  col=mix(col,uFoamCol,pow(t,3.0)*uFoam*0.85);
+  float a=(core*0.85+halo*0.5)*vFade*(0.30+0.70*t)*uAlpha;
+  if(a<=0.002) discard;
+  frag=vec4(col, a);
+}`;
+
+    function compile(type, src){
+      const sh=gl.createShader(type); gl.shaderSource(sh,src); gl.compileShader(sh);
+      if(!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
+      return sh;
+    }
+    const prog=gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG));
+    gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+    gl.useProgram(prog);
+
+    // 网格点阵
+    const NX=260, NZ=220, N=NX*NZ;
+    const pos=new Float32Array(N*2);
+    let o=0;
+    for(let iz=0; iz<NZ; iz++){
+      for(let ix=0; ix<NX; ix++){
+        pos[o++]=(ix/(NX-1)*2-1)*S + (Math.random()-0.5)*0.25;
+        pos[o++]=(iz/(NZ-1)*2-1)*S + (Math.random()-0.5)*0.25;
+      }
+    }
+    const vbo=gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
+    const loc=gl.getAttribLocation(prog,'aPos');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+
+    const U={};
+    ['uVP','uTime','uWaveH','uChoppy','uWaveLen','uWind','uSpeed','uSeed','uSwell','uSwellR','uFog','uSize','uAlpha','uPointer','uRipples','uWater','uCrest','uFoamCol','uGlow','uFoam']
+      .forEach(n=>U[n]=gl.getUniformLocation(prog,n));
+
+    gl.uniform3fv(U.uWater, CFG.water);
+    gl.uniform3fv(U.uCrest, CFG.crest);
+    gl.uniform3fv(U.uFoamCol, CFG.foam);
+    gl.uniform1f(U.uWaveH, CFG.waveHeight);
+    gl.uniform1f(U.uChoppy, CFG.choppiness);
+    gl.uniform1f(U.uWaveLen, CFG.wavelength);
+    gl.uniform1f(U.uWind, CFG.wind*Math.PI/180);
+    gl.uniform1f(U.uSpeed, CFG.speed);
+    gl.uniform1f(U.uSeed, CFG.seed);
+    gl.uniform1f(U.uSwell, CFG.swell);
+    gl.uniform1f(U.uSwellR, CFG.swellRadius);
+    gl.uniform1f(U.uFog, CFG.fog);
+    gl.uniform1f(U.uGlow, CFG.glow);
+    gl.uniform1f(U.uFoam, CFG.foamAmt);
+    gl.uniform2f(U.uPointer, 999, 999);
+    const ripples=new Float32Array(16);
+    gl.uniform4fv(U.uRipples, ripples);
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    gl.clearColor(0.027,0.039,0.078,1.0);
+
+    // 矩阵
+    function perspective(fovy,aspect,near,far){
+      const f=1/Math.tan(fovy/2), nf=1/(near-far);
+      return new Float32Array([f/aspect,0,0,0, 0,f,0,0, 0,0,(far+near)*nf,-1, 0,0,2*far*near*nf,0]);
+    }
+    function lookAt(eye,c,up){
+      const z=norm(sub(eye,c)), x=norm(cross(up,z)), y=cross(z,x);
+      return new Float32Array([x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0,
+        -dot(x,eye),-dot(y,eye),-dot(z,eye),1]);
+    }
+    function mul(a,b){
+      const o=new Float32Array(16);
+      for(let c=0;c<4;c++)for(let r=0;r<4;r++)
+        o[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3];
+      return o;
+    }
+    const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+    const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+    const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+    const norm=a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];};
+
+    // 交互
+    const ptr={x:999,y:999,tx:0,ty:0,cx:0,cy:0};
+    let ri=0;
+    function onMove(e){
+      const nx=(e.clientX/innerWidth-0.5)*2, ny=(e.clientY/innerHeight-0.5)*2;
+      ptr.tx=nx; ptr.ty=ny; ptr.x=nx*S; ptr.y=-ny*S*0.7;
+    }
+    function onLeave(){ ptr.x=999; ptr.y=999; ptr.tx=0; ptr.ty=0; }
+    function onDown(e){
+      const nx=(e.clientX/innerWidth-0.5)*2, ny=(e.clientY/innerHeight-0.5)*2;
+      ripples[ri*4]=nx*S; ripples[ri*4+1]=-ny*S*0.7; ripples[ri*4+2]=clock; ripples[ri*4+3]=1;
+      ri=(ri+1)%4;
+    }
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerleave', onLeave);
+    canvas.addEventListener('pointerdown', onDown);
+
+    let clock=0, last=performance.now();
+    function resize(){
+      const dpr=Math.min(1.5, window.devicePixelRatio||1);
+      const w=Math.floor(innerWidth*dpr), h=Math.floor(innerHeight*dpr);
+      if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
+      gl.viewport(0,0,w,h);
+    }
+    function frame(now){
+      const dt=Math.min(0.05,(now-last)/1000); last=now; clock+=dt;
+      resize();
+      ptr.cx+=(ptr.tx-ptr.cx)*0.05; ptr.cy+=(ptr.ty-ptr.cy)*0.05;
+      gl.uniform1f(U.uTime, clock);
+      gl.uniform2f(U.uPointer, ptr.x, ptr.y);
+      gl.uniform4fv(U.uRipples, ripples);
+      const yaw=Math.sin(clock*0.05)*1.4 + ptr.cx*0.6;
+      const eye=[Math.sin(yaw)*10.5, 4.6 + ptr.cy*1.4, Math.cos(yaw)*9.5 + 1.5];
+      const proj=perspective(52*Math.PI/180, innerWidth/innerHeight, 0.1, 140);
+      const view=lookAt(eye, [0,-0.5,-5], [0,1,0]);
+      const vp=mul(proj,view);
+      gl.uniformMatrix4fv(U.uVP, false, vp);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      // 光晕层
+      gl.uniform1f(U.uSize, CFG.baseSize*2.1); gl.uniform1f(U.uAlpha, 0.5);
+      gl.drawArrays(gl.POINTS,0,N);
+      // 核心层
+      gl.uniform1f(U.uSize, CFG.baseSize); gl.uniform1f(U.uAlpha, 1.0);
+      gl.drawArrays(gl.POINTS,0,N);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }catch(err){
+    console.warn('3D 背景不可用，已降级为深蓝底：', (err&&err.message)?err.message:String(err));
+  }
+})();
+</script>
+</body>
+</html>
